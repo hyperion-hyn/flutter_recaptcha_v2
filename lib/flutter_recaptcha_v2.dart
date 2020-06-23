@@ -9,7 +9,9 @@ import 'dart:convert';
 class RecaptchaV2 extends StatefulWidget {
   final String apiKey;
   final String apiSecret;
-  final String pluginURL = "https://recaptcha-flutter-plugin.firebaseapp.com/";
+  final String language;
+  final String pluginURL = "https://www.hyn.space/titan/recaptcha.html";
+  final String verifyUrl = "https://recaptcha.net/recaptcha/api/siteverify";
   final RecaptchaV2Controller controller;
 
   final ValueChanged<bool> onVerifiedSuccessfully;
@@ -18,6 +20,7 @@ class RecaptchaV2 extends StatefulWidget {
   RecaptchaV2({
     this.apiKey,
     this.apiSecret,
+    this.language,
     RecaptchaV2Controller controller,
     this.onVerifiedSuccessfully,
     this.onVerifiedError,
@@ -34,7 +37,7 @@ class _RecaptchaV2State extends State<RecaptchaV2> {
   WebViewController webViewController;
 
   void verifyToken(String token) async {
-    String url = "https://www.google.com/recaptcha/api/siteverify";
+    String url = widget.verifyUrl;
     http.Response response = await http.post(url, body: {
       "secret": widget.apiSecret,
       "response": token,
@@ -97,49 +100,49 @@ class _RecaptchaV2State extends State<RecaptchaV2> {
   Widget build(BuildContext context) {
     return controller.visible
         ? Stack(
-            children: <Widget>[
-              WebView(
-                initialUrl: "${widget.pluginURL}?api_key=${widget.apiKey}",
-                javascriptMode: JavascriptMode.unrestricted,
-                javascriptChannels: <JavascriptChannel>[
-                  JavascriptChannel(
-                    name: 'RecaptchaFlutterChannel',
-                    onMessageReceived: (JavascriptMessage receiver) {
-                      // print(receiver.message);
-                      String _token = receiver.message;
-                      if (_token.contains("verify")) {
-                        _token = _token.substring(7);
-                      }
-                      // print(_token);
-                      verifyToken(_token);
+      children: <Widget>[
+        WebView(
+          initialUrl: "${widget.pluginURL}?api_key=${widget.apiKey}&hl=${widget.language ?? 'en'}",
+          javascriptMode: JavascriptMode.unrestricted,
+          javascriptChannels: <JavascriptChannel>[
+            JavascriptChannel(
+              name: 'RecaptchaFlutterChannel',
+              onMessageReceived: (JavascriptMessage receiver) {
+                // print(receiver.message);
+                String _token = receiver.message;
+                if (_token.contains("verify")) {
+                  _token = _token.substring(7);
+                }
+                // print(_token);
+                verifyToken(_token);
+              },
+            ),
+          ].toSet(),
+          onWebViewCreated: (_controller) {
+            webViewController = _controller;
+          },
+        ),
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: SizedBox(
+            height: 60,
+            child: Row(
+              mainAxisSize: MainAxisSize.max,
+              children: <Widget>[
+                Expanded(
+                  child: RaisedButton(
+                    child: Text("CANCEL RECAPTCHA"),
+                    onPressed: () {
+                      controller.hide();
                     },
                   ),
-                ].toSet(),
-                onWebViewCreated: (_controller) {
-                  webViewController = _controller;
-                },
-              ),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: SizedBox(
-                  height: 60,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.max,
-                    children: <Widget>[
-                      Expanded(
-                        child: RaisedButton(
-                          child: Text("CANCEL RECAPTCHA"),
-                          onPressed: () {
-                            controller.hide();
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
-              ),
-            ],
-          )
+              ],
+            ),
+          ),
+        ),
+      ],
+    )
         : Container();
   }
 }
